@@ -145,7 +145,7 @@ export function App() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-center pb-2 mb-2 border-b-2 border-dark-blue">
           <div className="flex items-center mb-2 md:mb-0">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQF3WLeV5KU2XNmtWkbvTraGaKT5OA7DuseSw&s" alt="Pluriservice Solutions Logo" className="w-36 h-auto mr-4" />
+            <img src="/pluriservice-logo.png" alt="Pluriservice Solutions Logo" className="w-36 h-auto mr-4" />
           </div>
           <div className="text-center md:text-right">
             <h1 className="text-xl font-bold text-dark-blue whitespace-nowrap">SCHEDA DI ASSISTENZA TECNICA</h1>
