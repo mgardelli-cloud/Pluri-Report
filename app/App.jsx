@@ -42,16 +42,10 @@ export function App() {
       responsible: '',
       signatureDate: '',
       customerSignature: '',
-    }
+    },
+    partsReplaced: Array.from({ length: 5 }, () => ({ description: '', quantity: 1, unitPrice: 0 })) as PartsReplaced[],
+    checkboxState: CHECKBOX_OPTIONS.reduce((acc, option) => ({ ...acc, [option]: false }), {} as Record<string, boolean>),
   });
-
-  const [checkboxState, setCheckboxState] = useState<Record<string, boolean>>(
-    CHECKBOX_OPTIONS.reduce((acc, option) => ({ ...acc, [option]: false }), {})
-  );
-
-  const [partsReplaced, setPartsReplaced] = useState<PartsReplaced[]>(
-    Array.from({ length: 5 }, () => ({ description: '', quantity: 1, unitPrice: 0 }))
-  );
 
   const [totals, setTotals] = useState({
     imponibile: 0,
@@ -59,61 +53,67 @@ export function App() {
     totalDocument: 0,
   });
 
-  // Gestione dei cambiamenti nei campi di testo e numerici del form
+  // Unificata gestione dei cambiamenti per tutti i campi
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: e.target.type === 'number' ? parseFloat(value) || 0 : value
-    }));
-  };
-  
-  // Gestione dei cambiamenti per le firme
-  const handleSignatureChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      signatures: {
-        ...prev.signatures,
-        [name]: value
-      }
-    }));
+    const { name, value, type } = e.target;
+    const isNumber = ['number', 'select-one'].includes(type) || ['totalHours', 'kmTravelled', 'hourlyCost', 'kmCost'].includes(name);
+
+    if (name in formData.signatures) {
+      setFormData(prev => ({
+        ...prev,
+        signatures: {
+          ...prev.signatures,
+          [name]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: isNumber ? parseFloat(value) || 0 : value
+      }));
+    }
   };
 
   // Gestione dei cambiamenti per le checkbox
   const handleCheckboxChange = (option: string) => {
-    setCheckboxState(prev => ({
+    setFormData(prev => ({
       ...prev,
-      [option]: !prev[option]
+      checkboxState: {
+        ...prev.checkboxState,
+        [option]: !prev.checkboxState[option]
+      }
     }));
   };
 
   // Gestione dei cambiamenti nelle parti sostituite
   const handlePartsChange = (index: number, field: keyof PartsReplaced, value: string) => {
-    setPartsReplaced(prev => {
-      const newParts = [...prev];
+    setFormData(prev => {
+      const newParts = [...prev.partsReplaced];
       newParts[index] = {
         ...newParts[index],
         [field]: field === 'description' ? value : parseFloat(value) || 0,
       };
-      return newParts;
+      return {
+        ...prev,
+        partsReplaced: newParts,
+      };
     });
   };
 
   // Calcolo totale ogni volta che i dati cambiano
   useEffect(() => {
-    let partsTotal = partsReplaced.reduce((acc, part) => acc + (part.quantity * part.unitPrice), 0);
-    let laborTotal = (formData.totalHours * formData.hourlyCost) + (formData.kmTravelled * formData.kmCost);
-    let total = partsTotal + laborTotal;
-    let iva = total * 0.22;
-    let totalDocument = total + iva;
+    const partsTotal = formData.partsReplaced.reduce((acc, part) => acc + (part.quantity * part.unitPrice), 0);
+    const laborTotal = (formData.totalHours * formData.hourlyCost) + (formData.kmTravelled * formData.kmCost);
+    const total = partsTotal + laborTotal;
+    const iva = total * 0.22;
+    const totalDocument = total + iva;
 
     setTotals({
       imponibile: total,
       iva: iva,
       totalDocument: totalDocument,
     });
-  }, [formData, partsReplaced]);
+  }, [formData]);
 
   const primaryColor = '#1a237e';
   const lightGrayColor = '#f4f4f4';
@@ -200,7 +200,7 @@ export function App() {
                   <input
                     type="checkbox"
                     id={option}
-                    checked={checkboxState[option]}
+                    checked={formData.checkboxState[option]}
                     onChange={() => handleCheckboxChange(option)}
                     className="form-checkbox h-3 w-3 text-dark-blue rounded-sm focus:ring-0"
                   />
@@ -326,7 +326,7 @@ export function App() {
             <div className="font-semibold text-dark-blue">DESCRIZIONE</div>
             <div className="font-semibold text-dark-blue text-center">QUANTITÀ</div>
             <div className="font-semibold text-dark-blue text-right">P. UNITARIO (€)</div>
-            {partsReplaced.map((part, index) => (
+            {formData.partsReplaced.map((part, index) => (
               <div key={index} className="contents">
                 <input
                   type="text"
@@ -409,7 +409,7 @@ export function App() {
               type="text"
               name="responsible"
               value={formData.signatures.responsible}
-              onChange={handleSignatureChange}
+              onChange={handleInputChange}
               className="w-full border-b border-dark-blue mt-1 py-1 outline-none"
             />
           </div>
@@ -419,7 +419,7 @@ export function App() {
               type="date"
               name="signatureDate"
               value={formData.signatures.signatureDate}
-              onChange={handleSignatureChange}
+              onChange={handleInputChange}
               className="w-40 border-b border-dark-blue mt-1 py-1 outline-none"
             />
           </div>
@@ -429,7 +429,7 @@ export function App() {
               type="text"
               name="customerSignature"
               value={formData.signatures.customerSignature}
-              onChange={handleSignatureChange}
+              onChange={handleInputChange}
               className="w-full border-b border-dark-blue mt-1 py-1 outline-none"
             />
           </div>
